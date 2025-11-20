@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PATEL POULTRY</title>
+
+<!-- jsPDF CDN for PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+  --primary:#0055ff;
+  --bg:#eaf2ff;
+  --card:#ffffff;
+  --muted:#375a9c;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:#122}
+.top-banner{height:72px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.top-banner img{max-height:72px;display:block}
+
+/* header */
+.header{
+  background:linear-gradient(90deg,var(--primary),#66c9ff);
+  color:#fff;padding:12px 16px;text-align:center;font-weight:800;font-size:22px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* layout */
+.container{max-width:1050px;margin:18px auto;padding:12px}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:14px}
+.box{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.06)}
+
+/* home small box */
+.home-center{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px}
+
+/* inputs/buttons */
+label{display:block;margin-top:8px;color:var(--muted);font-weight:700}
+input,select,button{width:100%;padding:10px;border-radius:8px;border:1px solid #cfe3ff;font-size:15px}
+button{background:var(--primary);color:#fff;border:none;cursor:pointer;font-weight:800;box-shadow:0 6px 16px rgba(0,85,255,0.14)}
+button.secondary{background:#666}
+
+/* table */
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:8px;border:1px solid #e6f1ff;text-align:center;font-weight:600}
+th{background:linear-gradient(90deg,var(--primary),#66c9ff);color:#fff}
+
+/* owner small card inside billing */
+.owner-card{background:linear-gradient(180deg,#f5fbff,#ffffff);padding:10px;border-radius:8px;border:1px solid #d6eaff;margin-bottom:12px}
+
+/* print area adjustments */
+#printArea{background:var(--card);padding:10px;border-radius:6px}
+@media print {
+  body * { visibility: hidden !important; }
+  #printArea, #printArea * { visibility: visible !important; }
+  #printArea { position: absolute; top:0; left:0; width:100%; }
+}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- top banner image (uploaded) -->
+<div class="top-banner">
+  <img src="/mnt/data/Screenshot From 2025-11-19 21-33-45.png" alt="banner">
+</div>
+
+<div class="header">🐓 PATEL POULTRY</div>
+
+<div class="container">
+
+  <!-- HOME (only name/details + Go to billing) -->
+  <div class="box home-center" id="homeBox">
+    <h2 style="margin:0">PATEL POULTRY</h2>
+    <div style="font-weight:700">Owner: Rohit Patel</div>
+    <div style="color:var(--muted)">📞 9191569371</div>
+    <div style="color:var(--muted)">📍 Near Siddh Baba Mandir, Sankui - 483332</div>
+    <button onclick="goToBilling()">Go to Billing</button>
+  </div>
+
+  <!-- Grid: main billing + side (history/month) -->
+  <div class="grid">
+
+    <!-- LEFT: Billing -->
+    <div class="box" id="billingBox">
+      <h3 style="margin-top:0">🧾 Billing Counter</h3>
+
+      <!-- owner info inside billing (Option A) -->
+      <div class="owner-card">
+        <div style="font-weight:800">Owner: Rohit Patel</div>
+        <div style="color:var(--muted)">📞 9191569371</div>
+        <div style="color:var(--muted)">📍 Near Siddh Baba Mandir, Sankui</div>
+      </div>
+
+      <label>Customer Name</label>
+      <input id="custName" placeholder="Customer name">
+
+      <label>Select Item</label>
+      <select id="selItem">
+        <option value="">-- Select --</option>
+        <option value="Murga">Murga</option>
+        <option value="Dana 1">Dana 1</option>
+        <option value="Dana 2">Dana 2</option>
+        <option value="Dana 3">Dana 3</option>
+      </select>
+
+      <label>Quantity (kg)</label>
+      <input id="qty" type="number" step="0.1" min="0.1" placeholder="e.g. 1.5">
+
+      <label>Rate (₹)</label>
+      <input id="rate" type="number" step="0.01" min="0" placeholder="Rate per unit">
+
+      <button onclick="addBillItem()">Add Item to Bill</button>
+
+      <!-- print area (only this prints) -->
+      <div id="printArea" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr><th>SL</th><th style="text-align:left">Item</th><th>Qty</th><th>Rate</th><th>Total</th></tr>
+          </thead>
+          <tbody id="billBody"></tbody>
+        </table>
+
+        <h3 id="gTotal" style="text-align:right;margin-top:10px">Grand Total: ₹0.00</h3>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button onclick="savePdfAndHistory()" style="flex:1">Save Bill as PDF (store)</button>
+        <button onclick="printBill()" class="secondary" style="flex:1">Print Bill</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: History + Monthly -->
+    <div class="box">
+      <h3 style="margin-top:0">📚 History</h3>
+      <div style="margin-bottom:10px">
+        <button onclick="renderHistory()">Refresh History</button>
+      </div>
+      <div id="historyList" style="max-height:300px;overflow:auto"></div>
+
+      <hr style="margin:12px 0">
+
+      <h3>📅 Monthly Total</h3>
+      <div style="display:flex;gap:10px">
+        <input type="month" id="monthPick" style="flex:1">
+        <button onclick="computeMonthTotal()" style="flex:1">Compute</button>
+      </div>
+      <h3 id="monthTotal" style="margin-top:10px">Total: ₹0.00</h3>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* Keys */
+const BILL_KEY = "POULTRY_BILLS_PDF_BASE64";
+
+/* State */
+let currentBill = []; // array of {item, qty, rate, total}
+
+/* Helpers */
+function goToBilling(){
+  window.scrollTo({ top: document.getElementById('billingBox').offsetTop - 10, behavior:'smooth' });
+}
+
+/* Add item to current bill */
+function addBillItem(){
+  const item = document.getElementById('selItem').value;
+  const qty = parseFloat(document.getElementById('qty').value);
+  const rate = parseFloat(document.getElementById('rate').value);
+
+  if(!item || !qty || !rate){
+    alert('Enter item, qty and rate');
+    return;
+  }
+  if(item === 'Murga' && qty > 10){
+    alert('Murga max quantity 10');
+    return;
+  }
+
+  const total = +(qty * rate);
+  currentBill.push({ item, qty, rate, total });
+  renderBillTable();
+
+  // clear inputs (keep rate optionally)
+  document.getElementById('qty').value = '';
+}
+
+/* Render the bill table */
+function renderBillTable(){
+  const tbody = document.getElementById('billBody');
+  tbody.innerHTML = '';
+  let g = 0;
+  currentBill.forEach((row, i) => {
+    g += row.total;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td>
+                    <td style="text-align:left">${row.item}</td>
+                    <td>${row.qty}</td>
+                    <td>${row.rate.toFixed(2)}</td>
+                    <td>${row.total.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('gTotal').innerText = 'Grand Total: ₹' + g.toFixed(2);
+}
+
+/* Print only bill area */
+function printBill(){
+  // Ensure bill saved in history before printing? Not required, but leave to user.
+  window.print(); // print CSS ensures only #printArea prints
+}
+
+/* Generate PDF (jsPDF) and return dataURI string */
+async function generatePdfDataUri(customerName, billItems){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  const left = 40;
+  let y = 40;
+
+  pdf.setFontSize(18);
+  pdf.setFont('helvetica','bold');
+  pdf.text('PATEL POULTRY', 40, y);
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica','normal');
+  pdf.text('Owner: Rohit Patel', left, y+18);
+  pdf.text('Mobile: 9191569371', left, y+32);
+  pdf.text('Location: Near Siddh Baba Mandir, Sankui - 483332', left, y+46);
+
+  pdf.setFontSize(11);
+  pdf.text('Customer: ' + (customerName || '-'), left, y+74);
+  pdf.text('Date: ' + new Date().toLocaleString(), left, y+90);
+
+  // table header
+  let tableY = y + 120;
+  pdf.setFontSize(11);
+  pdf.setFillColor(230,235,255);
+  pdf.rect(left-2, tableY-14, 500, 20, 'F');
+  pdf.setTextColor(0,0,0);
+  pdf.text('SL', left, tableY);
+  pdf.text('Item', left+40, tableY);
+  pdf.text('Qty', left+240, tableY);
+  pdf.text('Rate', left+320, tableY);
+  pdf.text('Total', left+400, tableY);
+
+  tableY += 18;
+  let grand = 0;
+  for(let i=0;i<billItems.length;i++){
+    const r = billItems[i];
+    grand += r.total;
+    const rowY = tableY + (i*18);
+    pdf.text(String(i+1), left, rowY);
+    pdf.text(r.item, left+40, rowY);
+    pdf.text(String(r.qty), left+240, rowY);
+    pdf.text(r.rate.toFixed(2), left+320, rowY);
+    pdf.text(r.total.toFixed(2), left+400, rowY);
+
+    // add page if exceeding
+    if(rowY > 720){
+      pdf.addPage();
+      tableY = 40;
+    }
+  }
+
+  // Grand total
+  pdf.setFontSize(13);
+  pdf.setFont('helvetica','bold');
+  pdf.text('Grand Total: ₹' + grand.toFixed(2), left, tableY + billItems.length*18 + 24);
+
+  // Footer
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica','normal');
+  pdf.text('WELCOME', left, tableY + billItems.length*18 + 50);
+
+  // Data URI
+  const dataUri = pdf.output('datauristring');
+  return { dataUri, total: grand };
+}
+
+/* Save PDF to localStorage with customer name and time (Base64 DataURI) */
+async function savePdfAndHistory(){
+  if(currentBill.length === 0){
+    alert('No items in bill to save');
+    return;
+  }
+  const cust = document.getElementById('custName').value || 'Customer';
+  const result = await generatePdfDataUri(cust, currentBill);
+  const dataUri = result.dataUri;
+  const total = result.total;
+  const time = new Date().toLocaleString();
+
+  // store in localStorage
+  const stored = JSON.parse(localStorage.getItem(BILL_KEY) || '[]');
+  stored.push({
+    name: cust,
+    time: time,
+    total: total,
+    pdf: dataUri
+  });
+  localStorage.setItem(BILL_KEY, JSON.stringify(stored));
+
+  alert('Saved bill as PDF in history.');
+
+  // clear current bill after saving
+  currentBill = [];
+  renderBillTable();
+  renderHistoryList();
+}
+
+/* Render history list (with view/download buttons) */
+function renderHistoryList(){
+  const stored = JSON.parse(localStorage.getItem(BILL_KEY) || '[]').slice().reverse(); // recent first
+  const container = document.getElementById('historyList');
+  container.innerHTML = '';
+  if(stored.length === 0){
+    container.innerHTML = '<div style="color:var(--muted)">No saved bills</div>';
+    return;
+  }
+  stored.forEach((entry, idx) => {
+    const i = stored.length - 1 - idx; // original index mapping if needed
+    const card = document.createElement('div');
+    card.style.border = '1px solid #e6f1ff';
+    card.style.padding = '8px';
+    card.style.marginBottom = '8px';
+    card.style.borderRadius = '8px';
+    card.innerHTML = `<div style="font-weight:800">${entry.name} — ₹${entry.total.toFixed ? entry.total.toFixed(2) : entry.total}</div>
+                      <div style="color:var(--muted);font-size:13px">${entry.time}</div>
+                      <div style="margin-top:8px;display:flex;gap:8px">
+                        <button style="flex:1" onclick="viewPdf(${stored.length-1-idx})">VIEW PDF</button>
+                        <button style="flex:1;background:#44a;box-shadow:none" onclick="downloadPdf(${stored.length-1-idx})">DOWNLOAD</button>
+                      </div>`;
+    container.appendChild(card);
+  });
+}
+
+/* View stored PDF in new tab (data URI) */
+function viewPdf(index){
+  const stored = JSON.parse(localStorage.getItem(BILL_KEY) || '[]');
+  if(!stored[index] || !stored[index].pdf){
+    alert('PDF not found');
+    return;
+  }
+  window.open(stored[index].pdf, '_blank');
+}
+
+/* Download stored PDF */
+function downloadPdf(index){
+  const stored = JSON.parse(localStorage.getItem(BILL_KEY) || '[]');
+  if(!stored[index] || !stored[index].pdf){
+    alert('PDF not found');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = stored[index].pdf;
+  // filename with date-time
+  const timeSafe = stored[index].time.replace(/[^\w]/g,'_');
+  a.download = `Patel_Poultry_Bill_${timeSafe}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* Render history summary (alias) */
+function renderHistory(){
+  renderHistoryList();
+}
+
+/* compute monthly sum (optionally filter by month if chosen) */
+function computeMonthTotal(){
+  const stored = JSON.parse(localStorage.getItem(BILL_KEY) || '[]');
+  const monthVal = document.getElementById('monthPick').value; // yyyy-mm or empty
+  let sum = 0;
+  stored.forEach(entry => {
+    if(!monthVal){
+      sum += Number(entry.total);
+    } else {
+      // entry.time is locale string; better to store ISO when saving to support filtering.
+      // try to parse; if fails, include anyway
+      const parsed = new Date(entry.time);
+      if(!isNaN(parsed)){
+        const ym = parsed.toISOString().slice(0,7);
+        if(ym === monthVal) sum += Number(entry.total);
+      } else {
+        sum += Number(entry.total);
+      }
+    }
+  });
+  document.getElementById('monthTotal').innerText = 'Total: ₹' + sum.toFixed(2);
+}
+
+/* init on load */
+document.addEventListener('DOMContentLoaded', ()=>{
+  renderHistoryList();
+});
+</script>
+
+</body>
+</html>
